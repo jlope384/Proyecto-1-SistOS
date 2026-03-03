@@ -63,3 +63,52 @@
     - Is-successful: bool
     
     > [NOTE]: Each implementation of this protocol can design their own codes to handle the status of the server response.
+
+
+## TCP Framing
+
+TCP is a byte-stream protocol — it does not preserve message boundaries. Every message sent over TCP **must** include a 5-byte header before the serialized protobuf payload so the receiver knows what to read and how to parse it.
+
+### Header format
+
+```
+┌──────────────────┬───────────────────────────┬────────────────────────────┐
+│  1 byte: type    │  4 bytes: payload length   │  N bytes: protobuf payload │
+│  (uint8)         │  (uint32, big-endian)       │                            │
+└──────────────────┴───────────────────────────┴────────────────────────────┘
+```
+
+- **type**: identifies which proto struct to use for deserialization.
+- **length**: exact number of bytes of the serialized protobuf that follow.
+- **payload**: the raw bytes from `SerializeToString()`.
+
+### Message type table
+
+| Type | Direction        | Proto                   |
+|------|-----------------|-------------------------|
+| 1    | client → server | register                |
+| 2    | client → server | message_general         |
+| 3    | client → server | message_dm              |
+| 4    | client → server | change_status           |
+| 5    | client → server | list_users              |
+| 6    | client → server | get_user_info           |
+| 7    | client → server | quit                    |
+| 10   | server → client | server_response         |
+| 11   | server → client | all_users               |
+| 12   | server → client | for_dm                  |
+| 13   | server → client | broadcast_messages      |
+| 14   | server → client | get_user_info_response  |
+
+### Send/receive contract
+
+**Sending:**
+1. Serialize the proto object to bytes.
+2. Build a 5-byte header: `[type (1B)][length (4B big-endian)]`.
+3. Send header + payload in one write.
+
+**Receiving:**
+1. Read exactly 5 bytes → parse type and length.
+2. Read exactly `length` bytes → that is the protobuf payload.
+3. Use `type` to select the correct proto class and call `ParseFromString()`.
+
+> [NOTE]: The protos themselves are not modified. Framing is handled entirely in the send/receive layer of the application code.
