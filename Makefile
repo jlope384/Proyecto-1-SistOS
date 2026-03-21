@@ -7,9 +7,9 @@ GTK_LDFLAGS = $(shell pkg-config --libs   gtk+-3.0)
 
 SRC_COMMON = src/framing.c src/serializer.c
 
-.PHONY: all server client client_cli clean
+.PHONY: all server client clean
 
-all: server client client_cli
+all: server client
 
 server: $(SRC_COMMON) src/server.c
 	$(CC) $(CFLAGS) -o server $(SRC_COMMON) src/server.c $(LDFLAGS)
@@ -17,8 +17,5 @@ server: $(SRC_COMMON) src/server.c
 client: $(SRC_COMMON) src/client.c
 	$(CC) $(CFLAGS) $(GTK_CFLAGS) -o client $(SRC_COMMON) src/client.c $(LDFLAGS) $(GTK_LDFLAGS)
 
-client_cli: $(SRC_COMMON) src/client_cli.c
-	$(CC) $(CFLAGS) -o client_cli $(SRC_COMMON) src/client_cli.c $(LDFLAGS)
-
 clean:
-	rm -f server client client_cli
+	rm -f server client
